@@ -1,0 +1,915 @@
+\documentclass[11pt,a4paper]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tocloft}
+
+% Page geometry
+\geometry{margin=1in}
+
+% Hyperref settings
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    filecolor=magenta,
+    urlcolor=cyan!70!black,
+    citecolor=blue!70!black,
+    pdftitle={Project Documentation: PE Header Malware Analysis},
+    pdfauthor={Fabiha Jalal, Sadia Tasnim Dhruba, Onamika Hossain}
+}
+
+% Header/footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Project Documentation}
+\fancyhead[R]{\small PE Header Malware Analysis}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Graphics path
+\graphicspath{{./}}
+
+% Custom colors
+\definecolor{codebg}{RGB}{245,245,245}
+\definecolor{tableheader}{RGB}{220,230,245}
+\definecolor{fixbefore}{RGB}{255,230,230}
+\definecolor{fixafter}{RGB}{230,255,230}
+
+% Title formatting
+\titleformat{\section}{\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{1em}{}
+
+\begin{document}
+
+% ============================================================
+% TITLE PAGE
+% ============================================================
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+
+{\Huge\bfseries Project Documentation\par}
+\vspace{0.5cm}
+{\LARGE An Efficient Feature Extraction Method for\\Static Malware Analysis Using PE Header Files:\\ A Comparative Study of Feature Set Approaches\par}
+
+\vspace{2cm}
+
+{\Large\bfseries Authors\par}
+\vspace{0.5cm}
+{\large
+Fabiha Jalal\\
+Sadia Tasnim Dhruba\\
+Onamika Hossain\par}
+
+\vspace{1cm}
+
+{\Large\bfseries Supervisor\par}
+\vspace{0.5cm}
+{\large Dr.\ Md Moniruzzaman\\
+Assistant Professor\par}
+
+\vspace{1.5cm}
+
+{\large
+Department of Computer Science and Engineering\\
+Islamic University of Technology (IUT)\\
+Gazipur, Bangladesh\par}
+
+\vspace{2cm}
+
+{\large February 2026\par}
+
+\vfill
+{\small This document provides comprehensive technical documentation of the project,\\
+including methodology, results, code organization, and all consistency fixes applied.}
+\end{titlepage}
+
+% ============================================================
+% TABLE OF CONTENTS
+% ============================================================
+\newpage
+\tableofcontents
+\newpage
+
+% ============================================================
+% SECTION 1: PROJECT OVERVIEW
+% ============================================================
+\section{Project Overview}
+
+\subsection{Purpose}
+This project develops an efficient feature extraction methodology for static malware analysis using Portable Executable (PE) header files. The research compares two feature set approaches---a reduced set (15 features) and an extended set (32 features)---across six machine learning classifiers to determine the optimal trade-off between feature dimensionality, extraction time, and classification performance.
+
+\subsection{Research Goals}
+\begin{enumerate}
+    \item Develop an efficient feature extraction methodology using PE header files that minimizes extraction time while maintaining classification accuracy.
+    \item Conduct a comparative analysis between reduced (15 features) and extended (32 features) feature sets.
+    \item Evaluate multiple machine learning classifiers for malware detection.
+    \item Create and publish a novel malware dataset for research purposes.
+    \item Demonstrate the trade-offs between feature dimensionality, extraction time, and detection performance.
+\end{enumerate}
+
+\subsection{Key Contributions}
+\begin{itemize}
+    \item A novel and efficient feature extraction technique that reduces extraction time from approximately 19 minutes to under 5 minutes---a \textbf{75\% reduction}.
+    \item A publicly available dataset of 1,150 malware executable files with extracted PE header features.
+    \item Comprehensive comparative analysis of two feature set approaches across six machine learning classifiers.
+    \item Empirical evidence demonstrating the relationship between feature quantity and classification performance.
+\end{itemize}
+
+% ============================================================
+% SECTION 2: DATASET
+% ============================================================
+\section{Dataset}
+
+\subsection{Data Source}
+Malware executable samples were collected from \textbf{MalwareBazaar} (\url{https://malwarebazaar.abuse.ch}), a reputable malware sample repository maintained by abuse.ch. The dataset comprises Windows PE (Portable Executable) files representing various malware families.
+
+\subsection{Dataset Statistics}
+
+\begin{table}[H]
+\centering
+\caption{Dataset Overview}
+\begin{tabular}{ll}
+\toprule
+\textbf{Property} & \textbf{Value} \\
+\midrule
+Total Samples & 1,150 executable files (.exe) \\
+File Format & Windows PE (Portable Executable) \\
+Source & MalwareBazaar API \\
+Label/Target & Characteristics field (multi-class) \\
+Train/Test Split & 80/20 (920 training, 230 testing) \\
+Random State & 42 (for reproducibility) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Data Collection Process}
+The \texttt{malware\_downloader.py} script automates sample collection using the MalwareBazaar API. It searches across 20 malware signatures (including Emotet, Dridex, TrickBot, AgentTesla, and others) and 11 file types (exe, dll, doc, xls, js, vbs, ps1, jar, apk, elf, msi). The script includes automatic deduplication, rate limiting, and AES-based ZIP extraction for downloaded samples.
+
+\subsection{CSV Output Files}
+
+\begin{table}[H]
+\centering
+\caption{Generated CSV Files}
+\begin{tabular}{lccc}
+\toprule
+\textbf{File} & \textbf{Rows} & \textbf{Columns} & \textbf{Size} \\
+\midrule
+\texttt{output\_file\_final.csv} & 1,150 & 16 & 151 KB \\
+\texttt{output\_file\_more\_features.csv} & 1,150 & 34 & 239 KB \\
+\texttt{extracted\_features.csv} & 1,150 & 16 & 151 KB \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================
+% SECTION 3: FEATURE SETS
+% ============================================================
+\section{Feature Sets}
+
+\subsection{Reduced Feature Set (15 Features)}
+
+The reduced feature set extracts 15 attributes from PE headers: 3 from FILE\_HEADER and 12 from OPTIONAL\_HEADER. The \texttt{Characteristics} field serves as the classification target variable.
+
+\subsubsection{FILE\_HEADER Features (3)}
+\begin{table}[H]
+\centering
+\caption{Reduced Set -- FILE\_HEADER Features}
+\begin{tabular}{lp{9cm}}
+\toprule
+\textbf{Feature} & \textbf{Description} \\
+\midrule
+\texttt{Machine} & CPU architecture (Intel x86, x86-64, etc.) \\
+\texttt{NumberOfSections} & Number of PE sections in the file \\
+\texttt{Characteristics} & File flags (executable, DLL, etc.) --- \textbf{Target Variable} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{OPTIONAL\_HEADER Features (12)}
+\begin{table}[H]
+\centering
+\caption{Reduced Set -- OPTIONAL\_HEADER Features}
+\begin{tabular}{lp{9cm}}
+\toprule
+\textbf{Feature} & \textbf{Description} \\
+\midrule
+\texttt{AddressOfEntryPoint} & Program entry point RVA \\
+\texttt{ImageBase} & Preferred base load address \\
+\texttt{SectionAlignment} & Section boundary alignment in memory \\
+\texttt{FileAlignment} & Raw data section alignment in file \\
+\texttt{Subsystem} & Operating system subsystem (GUI, console, etc.) \\
+\texttt{DllCharacteristics} & DLL behavior flags \\
+\texttt{MajorOperatingSystemVersion} & Required Windows major version \\
+\texttt{MinorOperatingSystemVersion} & Required Windows minor version \\
+\texttt{MajorImageVersion} & Image major version number \\
+\texttt{MinorImageVersion} & Image minor version number \\
+\texttt{SizeOfImage} & Memory footprint when loaded \\
+\texttt{SizeOfHeaders} & Combined size of all headers \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Extended Feature Set (32 Features)}
+
+The extended feature set extracts 32 attributes (plus Characteristics as target): 7 from FILE\_HEADER and 26 from OPTIONAL\_HEADER.
+
+\subsubsection{FILE\_HEADER Features (7)}
+All 3 features from the reduced set, plus:
+\begin{table}[H]
+\centering
+\caption{Extended Set -- Additional FILE\_HEADER Features}
+\begin{tabular}{lp{9cm}}
+\toprule
+\textbf{Feature} & \textbf{Description} \\
+\midrule
+\texttt{TimeDateStamp} & Compilation timestamp \\
+\texttt{PointerToSymbolTable} & Symbol table pointer (usually 0) \\
+\texttt{NumberOfSymbols} & Symbol table entry count \\
+\texttt{SizeOfOptionalHeader} & Optional header size in bytes \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{OPTIONAL\_HEADER Features (26)}
+All 12 features from the reduced set, plus:
+\begin{table}[H]
+\centering
+\caption{Extended Set -- Additional OPTIONAL\_HEADER Features}
+\begin{tabular}{lp{9cm}}
+\toprule
+\textbf{Feature} & \textbf{Description} \\
+\midrule
+\texttt{MajorLinkerVersion} & Linker major version \\
+\texttt{MinorLinkerVersion} & Linker minor version \\
+\texttt{SizeOfCode} & Total code section size \\
+\texttt{SizeOfInitializedData} & Initialized data size \\
+\texttt{SizeOfUninitializedData} & Uninitialized data size (BSS) \\
+\texttt{BaseOfCode} & Code section base address \\
+\texttt{MajorSubsystemVersion} & Subsystem major version \\
+\texttt{MinorSubsystemVersion} & Subsystem minor version \\
+\texttt{CheckSum} & File checksum (for drivers) \\
+\texttt{SizeOfStackReserve} & Initial stack reserve \\
+\texttt{SizeOfStackCommit} & Stack commit per thread \\
+\texttt{SizeOfHeapReserve} & Initial heap reserve \\
+\texttt{SizeOfHeapCommit} & Heap commit size \\
+\texttt{LoaderFlags} & Loader behavior flags \\
+\texttt{NumberOfRvaAndSizes} & Data directory entries count \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Note: The OPTIONAL\_HEADER in the extended set contains 26 features total (12 from the reduced set plus the 15 additional features listed above, noting that \texttt{SizeOfImage} from the reduced set is already included).
+
+% ============================================================
+% SECTION 4: METHODOLOGY
+% ============================================================
+\section{Methodology}
+
+\subsection{Feature Extraction Pipeline}
+
+The feature extraction pipeline operates in three stages:
+\begin{enumerate}
+    \item \textbf{File Discovery:} Scan the \texttt{extracted/} directory for PE executable files.
+    \item \textbf{PE Header Parsing:} Use the Python \texttt{pefile} library to parse each file's FILE\_HEADER and OPTIONAL\_HEADER, extracting the designated feature attributes.
+    \item \textbf{CSV Export:} Write all extracted features (one row per sample) to a CSV file for subsequent ML training.
+\end{enumerate}
+
+\subsection{Machine Learning Classifiers}
+
+Six machine learning classifiers from scikit-learn were employed:
+
+\begin{table}[H]
+\centering
+\caption{Classifier Configuration}
+\label{tab:classifiers}
+\begin{tabular}{llp{6cm}}
+\toprule
+\textbf{Classifier} & \textbf{Key Parameters} & \textbf{Notes} \\
+\midrule
+Random Forest & \texttt{n\_estimators=100}, \texttt{n\_jobs=-1}, \texttt{random\_state=42} & Ensemble of 100 decision trees with bootstrap aggregation \\
+K-Nearest Neighbors & \texttt{n\_neighbors=5} & Instance-based learning using Euclidean distance \\
+Decision Tree & \texttt{random\_state=42} & Tree-based classification using information gain \\
+Support Vector Machine & \texttt{kernel='rbf'}, \texttt{gamma='scale'}, \texttt{C=1.0}, \texttt{random\_state=42} & Kernel-based classification with RBF kernel \\
+Logistic Regression & \texttt{max\_iter=1000}, \texttt{random\_state=42} & Linear classification with maximum likelihood estimation \\
+Gradient Boosting & \texttt{n\_estimators=50}, \texttt{random\_state=42} & Sequential ensemble method \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Experimental Setup}
+
+\begin{itemize}
+    \item \textbf{Train/Test Split:} 80\% training (920 samples), 20\% testing (230 samples)
+    \item \textbf{Cross-Validation:} 3-fold cross-validation (consistent across both feature sets)
+    \item \textbf{Random State:} 42 for all operations (reproducibility)
+    \item \textbf{Feature Scaling:} None (raw PE header values used directly)
+    \item \textbf{Evaluation Metrics:} Accuracy, Precision, Recall, F1-Score (weighted average, \texttt{zero\_division=0})
+\end{itemize}
+
+% ============================================================
+% SECTION 5: PYTHON SCRIPTS
+% ============================================================
+\section{Python Scripts}
+
+\subsection{Script Overview}
+
+The project contains six Python scripts, each serving a distinct role in the pipeline:
+
+\begin{table}[H]
+\centering
+\caption{Python Scripts Summary}
+\begin{tabular}{lcp{6.5cm}}
+\toprule
+\textbf{Script} & \textbf{Lines} & \textbf{Purpose} \\
+\midrule
+\texttt{generate\_charts.py} & 523 & Full pipeline for reduced feature set (15 features): extraction, training, and chart generation \\
+\texttt{generate\_charts\_more\_features.py} & 367 & Full pipeline for extended feature set (32 features) with optimizations \\
+\texttt{thesis\_with\_charts.py} & 529 & Modular implementation of the reduced feature set pipeline with separate functions \\
+\texttt{make\_charts.py} & 213 & Chart-only generation from pre-existing CSV (no extraction step) \\
+\texttt{rerun\_all.py} & --- & Re-runs ML training for both feature sets from existing CSVs with consistent settings \\
+\texttt{malware\_downloader.py} & 166 & Downloads malware samples from MalwareBazaar API \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Detailed Script Descriptions}
+
+\subsubsection{\texttt{generate\_charts.py} (Primary -- Reduced Features)}
+\begin{itemize}
+    \item \textbf{Input:} PE executable files in \texttt{extracted/} directory
+    \item \textbf{Output:} \texttt{output\_file\_final.csv} (1,150 $\times$ 16) and 5 PNG charts
+    \item \textbf{Workflow:} Extracts 15 PE header features from all .exe files, trains 6 classifiers on 80/20 split, generates 5 visualization charts
+    \item \textbf{Performance:} $\sim$215.81 seconds ($\sim$5.33 files/second)
+\end{itemize}
+
+\subsubsection{\texttt{generate\_charts\_more\_features.py} (Primary -- Extended Features)}
+\begin{itemize}
+    \item \textbf{Input:} PE executable files in \texttt{extracted/} directory
+    \item \textbf{Output:} \texttt{output\_file\_more\_features.csv} (1,150 $\times$ 34) and 5 PNG charts (with \texttt{\_more\_features} suffix)
+    \item \textbf{Workflow:} Extracts 32 PE header features (7 FILE\_HEADER + 26 OPTIONAL\_HEADER), trains 6 classifiers, generates 5 charts
+    \item \textbf{Optimizations:} Parallel Random Forest (\texttt{n\_jobs=-1}), skipped SVM cross-validation, non-interactive matplotlib backend (\texttt{Agg})
+    \item \textbf{Performance:} $\sim$290.12 seconds ($\sim$3.96 files/second)
+\end{itemize}
+
+\subsubsection{\texttt{thesis\_with\_charts.py} (Modular Alternative)}
+\begin{itemize}
+    \item \textbf{Purpose:} Modular, well-documented implementation of the 15-feature pipeline
+    \item \textbf{Key Functions:} \texttt{extract\_features\_pefile()}, \texttt{train\_classifiers()}, \texttt{plot\_*()}, \texttt{print\_results\_summary()}
+    \item \textbf{Advantage:} Better code organization with dedicated functions and full docstrings
+\end{itemize}
+
+\subsubsection{\texttt{make\_charts.py} (Quick Regeneration)}
+\begin{itemize}
+    \item \textbf{Purpose:} Generates charts from pre-computed CSV without feature extraction
+    \item \textbf{Use Case:} Rapid chart regeneration when CSV data already exists
+    \item \textbf{Advantage:} Fastest execution time (no extraction overhead)
+\end{itemize}
+
+\subsubsection{\texttt{rerun\_all.py} (Consistency Runner)}
+\begin{itemize}
+    \item \textbf{Purpose:} Master script to re-run ML training for both feature sets with guaranteed consistent classifier settings
+    \item \textbf{Output:} Regenerates all 10 PNG charts (5 per feature set)
+\end{itemize}
+
+\subsubsection{\texttt{malware\_downloader.py} (Data Collection)}
+\begin{itemize}
+    \item \textbf{Purpose:} Automated malware sample download from MalwareBazaar
+    \item \textbf{Features:} Search by signature (20 families), by tag (11 file types), AES ZIP extraction, deduplication, rate limiting
+\end{itemize}
+
+\subsection{Recommended Usage}
+
+\begin{table}[H]
+\centering
+\caption{Script Selection Guide}
+\begin{tabular}{lp{7cm}}
+\toprule
+\textbf{Task} & \textbf{Recommended Script} \\
+\midrule
+First-time full pipeline (15 features) & \texttt{generate\_charts.py} \\
+Full pipeline with modular code (15 features) & \texttt{thesis\_with\_charts.py} \\
+Extended feature analysis (32 features) & \texttt{generate\_charts\_more\_features.py} \\
+Quick chart regeneration (CSV exists) & \texttt{make\_charts.py} \\
+Regenerate both feature sets consistently & \texttt{rerun\_all.py} \\
+Download new malware samples & \texttt{malware\_downloader.py} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================
+% SECTION 6: RESULTS
+% ============================================================
+\section{Results}
+
+\subsection{Feature Extraction Performance}
+
+\begin{table}[H]
+\centering
+\caption{Feature Extraction Performance Comparison}
+\label{tab:extraction}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Metric} & \textbf{Reduced (15)} & \textbf{Extended (32)} \\
+\midrule
+Extraction Time & 215.81 sec & 290.12 sec \\
+Processing Speed & 5.33 files/sec & 3.96 files/sec \\
+Files Processed & 1,150 & 1,150 \\
+Errors & 0 & 0 \\
+CSV Columns & 16 & 34 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Comparison with Prior Work (APT1 Dataset):}
+\begin{itemize}
+    \item APT1 PE Header Extraction: 1,157.81 seconds ($\sim$19 minutes)
+    \item Our Extended Feature Set: 290.12 seconds ($\sim$4.8 minutes)
+    \item \textbf{Improvement: 75\% reduction in extraction time}
+\end{itemize}
+
+\subsection{Classification Results -- Reduced Feature Set (15 Features)}
+
+\begin{table}[H]
+\centering
+\caption{Classification Results -- Reduced Feature Set (15 Features)}
+\label{tab:reduced}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Classifier} & \textbf{Accuracy} & \textbf{F1 Score} & \textbf{Precision} & \textbf{Recall} \\
+\midrule
+\textbf{Random Forest} & \textbf{93.91\%} & \textbf{0.8379} & \textbf{0.8858} & \textbf{0.8264} \\
+Decision Tree & 91.74\% & 0.7329 & 0.7681 & 0.7302 \\
+Gradient Boosting & 90.87\% & 0.5956 & 0.6037 & 0.6028 \\
+KNN & 75.22\% & 0.4636 & 0.4969 & 0.4590 \\
+Logistic Regression & 51.30\% & 0.1369 & 0.1309 & 0.1734 \\
+SVM & 25.65\% & 0.0240 & 0.0151 & 0.0588 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Classification Results -- Extended Feature Set (32 Features)}
+
+\begin{table}[H]
+\centering
+\caption{Classification Results -- Extended Feature Set (32 Features)}
+\label{tab:extended}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Classifier} & \textbf{Accuracy} & \textbf{F1 Score} & \textbf{Precision} & \textbf{Recall} \\
+\midrule
+\textbf{Random Forest} & \textbf{94.78\%} & \textbf{0.8632} & \textbf{0.9051} & \textbf{0.8399} \\
+Decision Tree & 93.48\% & 0.7993 & 0.8167 & 0.7927 \\
+Gradient Boosting & 93.04\% & 0.7209 & 0.7616 & 0.7133 \\
+KNN & 80.00\% & 0.5085 & 0.5300 & 0.5053 \\
+Logistic Regression & 41.30\% & 0.1098 & 0.1076 & 0.1368 \\
+SVM & 25.65\% & 0.0240 & 0.0151 & 0.0588 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Accuracy Comparison Between Feature Sets}
+
+\begin{table}[H]
+\centering
+\caption{Accuracy Improvement: Extended vs.\ Reduced Feature Set}
+\label{tab:comparison}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Classifier} & \textbf{Reduced (15)} & \textbf{Extended (32)} & \textbf{Improvement} \\
+\midrule
+Random Forest & 93.91\% & 94.78\% & +0.87\% \\
+Decision Tree & 91.74\% & 93.48\% & +1.74\% \\
+Gradient Boosting & 90.87\% & 93.04\% & +2.17\% \\
+KNN & 75.22\% & 80.00\% & +4.78\% \\
+Logistic Regression & 51.30\% & 41.30\% & $-$10.00\% \\
+SVM & 25.65\% & 25.65\% & 0.00\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Feature Importance Analysis}
+
+Table~\ref{tab:importance} presents the top 10 most important features for malware classification, as determined by the Random Forest classifier on the extended feature set.
+
+\begin{table}[H]
+\centering
+\caption{Top 10 Feature Importance (Random Forest, Extended Set)}
+\label{tab:importance}
+\begin{tabular}{clc}
+\toprule
+\textbf{Rank} & \textbf{Feature} & \textbf{Importance} \\
+\midrule
+1 & AddressOfEntryPoint & 0.095 \\
+2 & MajorLinkerVersion & 0.092 \\
+3 & TimeDateStamp & 0.084 \\
+4 & SizeOfCode & 0.068 \\
+5 & DllCharacteristics & 0.065 \\
+6 & ImageBase & 0.057 \\
+7 & SizeOfInitializedData & 0.057 \\
+8 & SizeOfOptionalHeader & 0.050 \\
+9 & Machine & 0.050 \\
+10 & NumberOfSections & 0.039 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================
+% SECTION 7: VISUALIZATIONS
+% ============================================================
+\section{Visualizations}
+
+Ten charts are generated---five for each feature set. Each chart set follows a standardized format for direct comparison.
+
+\subsection{Chart Descriptions}
+
+\begin{table}[H]
+\centering
+\caption{Generated Visualization Charts}
+\begin{tabular}{cp{5cm}p{6cm}}
+\toprule
+\textbf{\#} & \textbf{Chart Type} & \textbf{Description} \\
+\midrule
+1 & Classifier Performance Comparison & 4-panel figure: (A) bar chart of all metrics, (B) 3-fold CV scores with error bars, (C) F1 score horizontal bars, (D) summary statistics table \\
+2 & Confusion Matrices & 6 heatmap subplots (one per classifier) showing TP, FP, TN, FN with accuracy annotations \\
+3 & Feature Importance & Horizontal bar chart from Random Forest, sorted by importance with color gradient (red--yellow--green) \\
+4 & Accuracy Comparison & Sorted bar chart ranking classifiers by accuracy with value labels \\
+5 & Metrics Radar Chart & Polar/spider chart overlaying all 6 classifiers across 4 metrics (accuracy, precision, recall, F1) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Chart File Listing}
+
+\subsubsection{Reduced Feature Set (15 Features)}
+\begin{enumerate}
+    \item \texttt{classifier\_comparison.png} (157 KB)
+    \item \texttt{confusion\_matrices.png} (270 KB)
+    \item \texttt{feature\_importance.png} (72 KB)
+    \item \texttt{accuracy\_comparison.png} (64 KB)
+    \item \texttt{metrics\_radar.png} (276 KB)
+\end{enumerate}
+
+\subsubsection{Extended Feature Set (32 Features)}
+\begin{enumerate}
+    \item \texttt{classifier\_comparison\_more\_features.png} (157 KB)
+    \item \texttt{confusion\_matrices\_more\_features.png} (260 KB)
+    \item \texttt{feature\_importance\_more\_features.png} (136 KB)
+    \item \texttt{accuracy\_comparison\_more\_features.png} (65 KB)
+    \item \texttt{metrics\_radar\_more\_features.png} (292 KB)
+\end{enumerate}
+
+\subsection{Sample Visualizations}
+
+The following pages present the generated charts for both feature sets.
+
+\subsubsection{Reduced Feature Set Charts}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{classifier_comparison.png}
+\caption{Classifier Performance Comparison -- Reduced Feature Set (15 Features)}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{accuracy_comparison.png}
+\caption{Accuracy Comparison -- Reduced Feature Set (15 Features)}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{feature_importance.png}
+\caption{Feature Importance (Random Forest) -- Reduced Feature Set (15 Features)}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{confusion_matrices.png}
+\caption{Confusion Matrices -- Reduced Feature Set (15 Features)}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{metrics_radar.png}
+\caption{Performance Radar Chart -- Reduced Feature Set (15 Features)}
+\end{figure}
+
+\subsubsection{Extended Feature Set Charts}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{classifier_comparison_more_features.png}
+\caption{Classifier Performance Comparison -- Extended Feature Set (32 Features)}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{accuracy_comparison_more_features.png}
+\caption{Accuracy Comparison -- Extended Feature Set (32 Features)}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{feature_importance_more_features.png}
+\caption{Feature Importance (Random Forest) -- Extended Feature Set (32 Features)}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{confusion_matrices_more_features.png}
+\caption{Confusion Matrices -- Extended Feature Set (32 Features)}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{metrics_radar_more_features.png}
+\caption{Performance Radar Chart -- Extended Feature Set (32 Features)}
+\end{figure}
+
+% ============================================================
+% SECTION 8: CONSISTENCY FIXES
+% ============================================================
+\section{Consistency Fixes}
+
+During the project review, nine issues were identified and fixed to ensure full consistency between the research paper, Python code, generated charts, and result tables. These are organized into two phases: five code-paper consistency fixes and four LaTeX quality fixes.
+
+\subsection{Phase 1: Code-Paper Consistency Fixes (Issues 1--5)}
+
+\subsubsection{Issue 1: Logistic Regression Accuracy Discrepancy}
+
+\begin{table}[H]
+\centering
+\caption{Issue 1 -- LR Accuracy Fix}
+\begin{tabular}{lp{5.5cm}p{5.5cm}}
+\toprule
+\textbf{Item} & \textbf{Before} & \textbf{After} \\
+\midrule
+Paper Table II (LR Accuracy) & 41.30\% & \textbf{51.30\%} \\
+Paper Table II (LR Metrics) & F1: 0.1098, Prec: 0.1076, Rec: 0.1368 & F1: \textbf{0.1369}, Prec: \textbf{0.1309}, Rec: \textbf{0.1734} \\
+Paper Table IV & Missing LR and SVM rows & Added both rows \\
+Root Cause & \texttt{thesis\_with\_charts.py} used \texttt{StandardScaler} inflating LR; paper copied 41.30\% from extended set & Removed \texttt{StandardScaler}; updated paper to match actual output \\
+Files Changed & \multicolumn{2}{l}{\texttt{thesis\_with\_charts.py}, \texttt{main.tex}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Issue 2: SVM Kernel Inconsistency}
+
+\begin{table}[H]
+\centering
+\caption{Issue 2 -- SVM Kernel Fix}
+\begin{tabular}{lp{5.5cm}p{5.5cm}}
+\toprule
+\textbf{Item} & \textbf{Before} & \textbf{After} \\
+\midrule
+\texttt{generate\_charts.py} & \texttt{kernel="linear"} & \texttt{kernel='rbf', gamma='scale', C=1.0} \\
+\texttt{thesis\_with\_charts.py} & \texttt{kernel='rbf', gamma=0.1} & \texttt{kernel='rbf', gamma='scale'} \\
+Paper & States ``RBF kernel'' & Confirmed consistent \\
+Files Changed & \multicolumn{2}{l}{\texttt{generate\_charts.py}, \texttt{thesis\_with\_charts.py}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Issue 3: Cross-Validation Folds Mismatch}
+
+\begin{table}[H]
+\centering
+\caption{Issue 3 -- CV Folds Fix}
+\begin{tabular}{lp{5.5cm}p{5.5cm}}
+\toprule
+\textbf{Item} & \textbf{Before} & \textbf{After} \\
+\midrule
+\texttt{generate\_charts.py} & \texttt{cv=5} (6 occurrences) & \texttt{cv=3} \\
+\texttt{thesis\_with\_charts.py} & \texttt{cv=5} & \texttt{cv=3} \\
+Chart Titles & ``5-Fold Cross-Validation Scores'' & ``3-Fold Cross-Validation Scores'' \\
+Paper & States ``3-fold cross-validation'' & Added ``(consistent across both feature sets)'' \\
+Files Changed & \multicolumn{2}{l}{\texttt{generate\_charts.py}, \texttt{thesis\_with\_charts.py}, \texttt{main.tex}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Issue 4: Gradient Boosting Estimators Mismatch}
+
+\begin{table}[H]
+\centering
+\caption{Issue 4 -- GB Estimators Fix}
+\begin{tabular}{lp{5.5cm}p{5.5cm}}
+\toprule
+\textbf{Item} & \textbf{Before} & \textbf{After} \\
+\midrule
+\texttt{generate\_charts.py} & \texttt{GradientBoostingClassifier (random\_state=42)} (default 100) & \texttt{n\_estimators=50} \\
+\texttt{thesis\_with\_charts.py} & \texttt{n\_estimators=100} & \texttt{n\_estimators=50} \\
+Paper & States ``50 estimators'' & Confirmed consistent \\
+Files Changed & \multicolumn{2}{l}{\texttt{generate\_charts.py}, \texttt{thesis\_with\_charts.py}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Issue 5: Feature Count Label Mismatch}
+
+\begin{table}[H]
+\centering
+\caption{Issue 5 -- Feature Count Label Fix}
+\begin{tabular}{lp{5.5cm}p{5.5cm}}
+\toprule
+\textbf{Item} & \textbf{Before} & \textbf{After} \\
+\midrule
+\texttt{generate\_charts\_more\_features.py} & All chart titles say ``33 Features'' & ``32 Features'' (5 occurrences) \\
+Paper & States ``Extended Feature Set (32 Features)'' & No change needed \\
+Files Changed & \multicolumn{2}{l}{\texttt{generate\_charts\_more\_features.py}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Phase 2: LaTeX Quality Fixes (Issues 6--9)}
+
+\subsubsection{Issue 6: Removed Unused Packages}
+The \texttt{listings} and \texttt{subcaption} packages were loaded in \texttt{main.tex} but never used. Both were removed to clean up the preamble.
+
+\subsubsection{Issue 7: Removed Unnecessary \texttt{\textbackslash bibliographystyle}}
+The command \texttt{\textbackslash bibliographystyle\{IEEEtran\}} was present but unnecessary since the paper uses a manual \texttt{\textbackslash begin\{thebibliography\}} environment. The command was removed.
+
+\subsubsection{Issue 8: Fixed Uncited Reference}
+The bibliography entry \texttt{\textbackslash bibitem\{yuk2022static\}} was defined but never cited in the text. A citation was added in Section~II-C alongside the existing \texttt{\textbackslash cite\{alkhshali2020effect\}}, changing ``differ from benign software [7]'' to ``differ from benign software [7, 9].''
+
+\subsubsection{Issue 9: Fixed Float Placement Specifiers}
+All float environments used the weak \texttt{[h]} specifier, which allows LaTeX to reorder figures and tables arbitrarily. All 17 instances (11 figures, 5 tables, 1 algorithm) were changed to the strict \texttt{[H]} specifier (from the \texttt{float} package) to enforce exact placement.
+
+\subsection{Post-Fix Verification}
+
+After all fixes, a comprehensive audit confirmed full consistency:
+
+\begin{table}[H]
+\centering
+\caption{Consistency Verification Checklist}
+\begin{tabular}{lc}
+\toprule
+\textbf{Check} & \textbf{Status} \\
+\midrule
+Paper Table II matches reduced set code output & Verified \\
+Paper Table III matches extended set code output & Verified \\
+Paper Table IV computed correctly from Tables II and III & Verified \\
+Paper Table V matches feature importance from Random Forest & Verified \\
+All 10 chart images match paper table numbers & Verified \\
+Paper text descriptions match table values & Verified \\
+All \texttt{\textbackslash cite\{\}} commands have matching \texttt{\textbackslash bibitem\{\}} entries & Verified \\
+All \texttt{\textbackslash includegraphics} reference existing files & Verified \\
+All packages are available on Overleaf & Verified \\
+Paper compiles without errors (7 pages) & Verified \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================
+% SECTION 9: FILE ORGANIZATION
+% ============================================================
+\section{File Organization}
+
+\subsection{Directory Structure}
+
+All project files reside in:
+
+\noindent\texttt{/Users/fabihajalal/Desktop/PE feature reduction time/}
+
+\begin{verbatim}
+PE feature reduction time/
+|-- Python Scripts
+|   |-- generate_charts.py
+|   |-- generate_charts_more_features.py
+|   |-- thesis_with_charts.py
+|   |-- make_charts.py
+|   |-- rerun_all.py
+|   |-- malware_downloader.py
+|
+|-- Data Files (CSV)
+|   |-- output_file_final.csv        (1,150 x 16)
+|   |-- output_file_more_features.csv (1,150 x 34)
+|   |-- extracted_features.csv        (backup)
+|
+|-- Visualization Charts (PNG)
+|   |-- Reduced Feature Set:
+|   |   |-- classifier_comparison.png
+|   |   |-- confusion_matrices.png
+|   |   |-- feature_importance.png
+|   |   |-- accuracy_comparison.png
+|   |   |-- metrics_radar.png
+|   |
+|   |-- Extended Feature Set:
+|       |-- classifier_comparison_more_features.png
+|       |-- confusion_matrices_more_features.png
+|       |-- feature_importance_more_features.png
+|       |-- accuracy_comparison_more_features.png
+|       |-- metrics_radar_more_features.png
+|
+|-- Documentation & Papers
+|   |-- File_Comparison_Analysis.md
+|   |-- Paper_Updated.pdf
+|   |-- Overleaf_Paper/
+|   |   |-- Overleaf_Paper/
+|   |       |-- main.tex  (IEEE-formatted paper)
+|   |       |-- main.pdf  (compiled paper)
+|   |-- Overleaf_Paper_Updated.zip
+|   |-- Project_Documentation.tex  (this document)
+|   |-- Project_Documentation.pdf  (this document)
+|
+|-- Dataset
+|   |-- extracted/  (2,005 directories of PE files)
+|
+|-- Version Control
+    |-- .git/
+    |-- .gitignore
+\end{verbatim}
+
+\subsection{Dependencies}
+
+\begin{table}[H]
+\centering
+\caption{Python Dependencies}
+\begin{tabular}{ll}
+\toprule
+\textbf{Package} & \textbf{Purpose} \\
+\midrule
+\texttt{pefile} & PE file parsing \\
+\texttt{pandas} & Data manipulation and CSV I/O \\
+\texttt{numpy} & Numerical computations \\
+\texttt{scikit-learn} & Machine learning classifiers and evaluation \\
+\texttt{matplotlib} & Chart generation \\
+\texttt{seaborn} & Enhanced visualization styling \\
+\texttt{requests} & HTTP requests (malware downloader) \\
+\texttt{pyzipper} & ZIP decompression with AES support \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================
+% SECTION 10: KEY FINDINGS
+% ============================================================
+\section{Key Findings}
+
+\subsection{Feature Extraction Efficiency}
+
+The proposed methodology achieves significant improvements in feature extraction time compared to prior work. Processing 1,150 malware samples requires only 215--290 seconds (depending on feature set size), representing a \textbf{75\% reduction} compared to the 19-minute extraction time reported for the APT1 dataset. This improvement enables more practical deployment in real-time malware detection scenarios.
+
+\subsection{Classification Performance}
+
+\begin{enumerate}
+    \item \textbf{Random Forest} achieved the highest overall accuracy at \textbf{94.78\%} with the extended feature set and \textbf{93.91\%} with the reduced feature set.
+    \item \textbf{Tree-based methods} (Random Forest, Decision Tree, Gradient Boosting) and KNN improved by +0.87\% to +4.78\% with the extended feature set.
+    \item \textbf{Logistic Regression} performed worse with the extended set (41.30\% vs.\ 51.30\%), likely due to multicollinearity among the additional features.
+    \item \textbf{SVM} exhibited poor performance (25.65\%) in both feature sets, likely due to the multi-class nature of the problem and the absence of feature scaling.
+\end{enumerate}
+
+\subsection{Accuracy vs.\ Extraction Time Trade-off}
+
+While the extended feature set provides improved accuracy for tree-based classifiers, it requires approximately \textbf{34\% more extraction time} (290 seconds vs.\ 215 seconds). For applications prioritizing speed over marginal accuracy improvements, the reduced feature set offers an effective compromise.
+
+\subsection{Feature Importance Insights}
+
+The top features for malware classification include \texttt{AddressOfEntryPoint} (0.095), \texttt{MajorLinkerVersion} (0.092), and \texttt{TimeDateStamp} (0.084). Some features contribute approximately 10$\times$ more discriminative power than others, suggesting that targeted feature selection could further optimize extraction efficiency without sacrificing classification performance.
+
+\subsection{Practical Implications}
+
+The research demonstrates that efficient malware detection is achievable using only PE header features without requiring computationally expensive dynamic analysis. The methodology is suitable for:
+\begin{itemize}
+    \item Real-time malware scanning applications
+    \item Large-scale malware dataset analysis
+    \item Integration with existing antivirus systems
+    \item Automated malware triage systems
+\end{itemize}
+
+\subsection{Classifier Ranking Summary}
+
+\begin{table}[H]
+\centering
+\caption{Final Classifier Ranking (Extended Feature Set)}
+\begin{tabular}{clc}
+\toprule
+\textbf{Rank} & \textbf{Classifier} & \textbf{Accuracy} \\
+\midrule
+1 & Random Forest & 94.78\% \\
+2 & Decision Tree & 93.48\% \\
+3 & Gradient Boosting & 93.04\% \\
+4 & KNN & 80.00\% \\
+5 & Logistic Regression & 41.30\% \\
+6 & SVM & 25.65\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}

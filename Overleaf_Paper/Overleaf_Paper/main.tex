@@ -1,0 +1,594 @@
+\documentclass[conference]{IEEEtran}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{cite}
+
+% Hyperref settings
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=cyan,
+    citecolor=blue
+}
+
+% Graphics path
+\graphicspath{{./}}
+
+\begin{document}
+
+% Title
+\title{An Efficient Feature Extraction Method for Static Malware Analysis Using PE Header Files: A Comparative Study of Feature Set Approaches}
+
+% Authors
+\author{
+    \IEEEauthorblockN{Fabiha Jalal, Sadia Tasnim Dhruba, Onamika Hossain}
+    \IEEEauthorblockA{
+        Department of Computer Science and Engineering\\
+        Islamic University of Technology (IUT)\\
+        Gazipur, Bangladesh\\
+        Email: fabihajalal@iut-dhaka.edu
+    }
+    \and
+    \IEEEauthorblockN{Dr. Md Moniruzzaman}
+    \IEEEauthorblockA{
+        Supervisor, Assistant Professor\\
+        Department of Computer Science and Engineering\\
+        Islamic University of Technology (IUT)\\
+        Gazipur, Bangladesh
+    }
+}
+
+\maketitle
+
+% Abstract
+\begin{abstract}
+Malware detection remains a critical challenge in cybersecurity as the volume and sophistication of malicious software continue to increase exponentially. This research presents an efficient feature extraction methodology for static malware analysis utilizing Portable Executable (PE) header files. We conduct a comprehensive comparative study between two distinct feature set approaches: a reduced feature set (15 features) and an extended feature set (32 features) extracted from PE file headers. Our experiments, conducted on a dataset of 1,150 malware executable samples collected from MalwareBazaar, demonstrate that the extended feature set achieves superior classification accuracy (94.78\%) compared to the reduced feature set (93.91\%) using Random Forest classification. Notably, our proposed methodology significantly reduces feature extraction time from approximately 19 minutes (as reported in prior APT1 dataset studies) to approximately 215--290 seconds, representing a reduction of over 75\%. The research evaluates six machine learning classifiers including Random Forest, K-Nearest Neighbors, Decision Tree, Support Vector Machine, Logistic Regression, and Gradient Boosting, providing insights into the trade-offs between feature dimensionality, extraction time, and classification performance. Our findings contribute to the development of more efficient real-time malware detection systems.
+\end{abstract}
+
+% Keywords
+\begin{IEEEkeywords}
+Malware Detection, Static Analysis, PE Header, Feature Extraction, Machine Learning, Cybersecurity
+\end{IEEEkeywords}
+
+%--------------------------------------------------------------------
+\section{Introduction}
+%--------------------------------------------------------------------
+
+\subsection{Overview}
+
+The proliferation of malware poses a significant threat to computer systems worldwide, with over 1 billion malware instances detected in 2021 alone, averaging approximately 33 new malware samples per second \cite{kalakuntla2019cyber}. The increasing frequency and sophistication of malware attacks necessitate the development of efficient and accurate detection methodologies. Malware analysis, the process of understanding the functionality and purpose of malicious software, plays a crucial role in identifying threats, assessing potential damage, and developing effective countermeasures.
+
+Static malware analysis, which examines executable files without execution, offers several advantages over dynamic analysis, including safety, speed, and the ability to analyze malware that employs anti-analysis techniques \cite{black2016anti}. By leveraging structural information contained within Portable Executable (PE) files, static analysis can efficiently identify malicious characteristics without the computational overhead and security risks associated with runtime analysis.
+
+\subsection{Research Objectives}
+
+This research aims to:
+\begin{enumerate}
+    \item Develop an efficient feature extraction methodology using PE header files that minimizes extraction time while maintaining classification accuracy
+    \item Conduct a comparative analysis between reduced (15 features) and extended (32 features) feature sets
+    \item Evaluate multiple machine learning classifiers for malware detection
+    \item Create and publish a novel malware dataset for research purposes
+    \item Demonstrate the trade-offs between feature dimensionality, extraction time, and detection performance
+\end{enumerate}
+
+\subsection{Contributions}
+
+The primary contributions of this research include:
+\begin{itemize}
+    \item A novel and efficient feature extraction technique that reduces extraction time from approximately 19 minutes to under 5 minutes
+    \item A publicly available dataset of 1,150 malware executable files with extracted PE header features
+    \item Comprehensive comparative analysis of two feature set approaches across six machine learning classifiers
+    \item Empirical evidence demonstrating the relationship between feature quantity and classification performance
+\end{itemize}
+
+%--------------------------------------------------------------------
+\section{Background and History}
+%--------------------------------------------------------------------
+
+\subsection{Malware Evolution}
+
+Malware, derived from ``malicious software,'' encompasses any program designed to damage, exploit, or gain unauthorized access to computer systems. The evolution of malware has progressed significantly since the emergence of early computer viruses in the 1980s. Modern malware categories include:
+
+\textbf{Viruses:} Self-replicating programs that attach to legitimate files and propagate when infected files are executed.
+
+\textbf{Worms:} Self-replicating malware that spreads through network connections without requiring host files.
+
+\textbf{Trojans:} Malicious programs disguised as legitimate software that create backdoors, steal data, or enable unauthorized access.
+
+\textbf{Ransomware:} Malware that encrypts victim files and demands payment for decryption keys. Notable examples include WannaCry (2017) and NotPetya (2017) \cite{choo2022handbook}.
+
+\textbf{Spyware:} Software that covertly monitors user activities, captures keystrokes, and transmits sensitive information to unauthorized parties.
+
+\subsection{Malware Analysis Techniques}
+
+\subsubsection{Static Analysis}
+Static analysis examines malware without execution by analyzing file metadata, extracting strings, and reading file headers \cite{santos2021generating}. This approach is safer, faster, and can identify malicious indicators that might be hidden during dynamic execution. Key components of static analysis include:
+\begin{itemize}
+    \item File hash verification (MD5, SHA-256)
+    \item PE header examination
+    \item String extraction and analysis
+    \item Disassembly and code pattern recognition
+\end{itemize}
+
+\subsubsection{Dynamic Analysis}
+Dynamic analysis involves executing malware in controlled environments (sandboxes or virtual machines) to observe runtime behavior, including system call monitoring, network traffic analysis, file system modifications, and registry changes.
+
+\subsubsection{Hybrid Analysis}
+Hybrid analysis combines static and dynamic techniques to provide comprehensive malware characterization, leveraging the strengths of both approaches \cite{kumar2021mcft}.
+
+\subsection{Portable Executable (PE) File Format}
+
+The PE file format is the standard executable format for Windows operating systems, containing structural information essential for operating system loaders \cite{rezaei2020efficient}. The PE structure comprises several components:
+
+\textbf{DOS Header (MZ Header):} Contains the magic number (0x5A4D) identifying the file as a DOS-compatible executable.
+
+\textbf{DOS Stub:} Legacy code for DOS compatibility, typically displaying ``This program cannot be run in DOS mode.''
+
+\textbf{PE File Header:} Contains critical metadata including machine architecture type, number of sections, timestamp, optional header size, and characteristics flags.
+
+\textbf{Optional Header:} Despite its name, this header is mandatory for executable files and contains entry point address, image base address, section and file alignment, operating system version requirements, subsystem type, DLL characteristics, and stack/heap size specifications \cite{maleki2019improved}.
+
+\textbf{Section Table:} Describes the layout of executable sections (.text, .data, .rdata, .rsrc, etc.)
+
+The PE header structure provides valuable features for malware classification, as malicious executables often exhibit distinctive header characteristics that differ from benign software \cite{alkhshali2020effect, yuk2022static}.
+
+%--------------------------------------------------------------------
+\section{Motivation}
+%--------------------------------------------------------------------
+
+\subsection{The Need for Efficient Feature Extraction}
+
+The exponential growth in malware variants demands analysis techniques that can process large volumes of samples efficiently. In 2021, ransomware attacks occurred approximately every 11 seconds, highlighting the critical need for rapid detection capabilities.
+
+Previous research utilizing PE header features for malware detection, such as studies on the APT1 dataset \cite{balram2019static}, reported feature extraction times exceeding 19 minutes (1,157.81 seconds) for processing executable samples. Such prolonged extraction times are impractical for real-time malware detection systems that must analyze thousands of samples daily.
+
+\subsection{Feature Selection Considerations}
+
+The selection of PE header features significantly impacts both extraction efficiency and classification accuracy. While comprehensive feature sets may capture more discriminative information, they also increase computational overhead. Conversely, minimal feature sets may sacrifice accuracy for speed.
+
+This research investigates the optimal balance between feature comprehensiveness and extraction efficiency by comparing:
+\begin{enumerate}
+    \item \textbf{Reduced Feature Set (15 features):} Focusing on essential PE header attributes
+    \item \textbf{Extended Feature Set (32 features):} Incorporating additional header fields for potentially improved discrimination
+\end{enumerate}
+
+\subsection{Research Gap}
+
+Prior studies have demonstrated the effectiveness of PE header-based malware detection but have not adequately addressed:
+\begin{itemize}
+    \item The trade-off between feature quantity and extraction time
+    \item Comparative analysis of different feature set sizes on the same dataset
+    \item Optimization of feature extraction for real-time detection applications
+\end{itemize}
+
+This research addresses these gaps through systematic experimentation and analysis.
+
+%--------------------------------------------------------------------
+\section{Working Mechanism}
+%--------------------------------------------------------------------
+
+\subsection{System Architecture}
+
+The proposed malware detection system comprises three primary phases: (1) Feature Extraction from PE files using the pefile library, (2) Machine Learning Classification using trained models, and (3) Detection Result output. Figure~\ref{fig:workflow} illustrates this workflow.
+
+\begin{figure}[H]
+\centering
+\fbox{\parbox{0.9\linewidth}{\centering
+\texttt{[Malware Samples]} $\rightarrow$ \texttt{[Feature Extraction]} $\rightarrow$ \texttt{[ML Classification]} $\rightarrow$ \texttt{[Result]}\\[0.5em]
+\small\textit{(PE Files)} \hspace{0.8cm} \textit{(PE Header Parser)} \hspace{0.6cm} \textit{(Trained Model)} \hspace{0.3cm} \textit{(Detection)}
+}}
+\caption{System Architecture Overview}
+\label{fig:workflow}
+\end{figure}
+
+\subsection{Dataset Preparation}
+
+\subsubsection{Data Collection}
+Malware executable samples were collected from MalwareBazaar\footnote{https://malwarebazaar.abuse.ch}, a reputable malware sample repository. The dataset comprises 1,150 PE executable files representing various malware families.
+
+\subsubsection{Data Processing}
+The Python \texttt{pefile} library was employed for PE header parsing. Files were validated to ensure proper PE format before feature extraction. Non-PE files (.rar, .elt, etc.) were excluded from the dataset.
+
+\subsection{Feature Extraction Methodology}
+
+\subsubsection{Reduced Feature Set (15 Features)}
+The reduced feature set extracts 15 attributes from PE headers:
+
+\textbf{File Header Features (3):}
+\begin{itemize}
+    \item Machine
+    \item NumberOfSections
+    \item Characteristics (target variable)
+\end{itemize}
+
+\textbf{Optional Header Features (12):}
+\begin{itemize}
+    \item AddressOfEntryPoint, ImageBase, SectionAlignment
+    \item FileAlignment, Subsystem, DllCharacteristics
+    \item MajorOperatingSystemVersion, MinorOperatingSystemVersion
+    \item MajorImageVersion, MinorImageVersion
+    \item SizeOfImage, SizeOfHeaders
+\end{itemize}
+
+\subsubsection{Extended Feature Set (32 Features)}
+The extended feature set extracts 32 attributes (plus Characteristics as target):
+
+\textbf{File Header Features (7):}
+Machine, NumberOfSections, TimeDateStamp, PointerToSymbolTable, NumberOfSymbols, SizeOfOptionalHeader, Characteristics
+
+\textbf{Optional Header Features (26):}
+MajorLinkerVersion, MinorLinkerVersion, SizeOfCode, SizeOfInitializedData, SizeOfUninitializedData, AddressOfEntryPoint, BaseOfCode, ImageBase, SectionAlignment, FileAlignment, MajorOperatingSystemVersion, MinorOperatingSystemVersion, MajorImageVersion, MinorImageVersion, MajorSubsystemVersion, MinorSubsystemVersion, SizeOfHeaders, CheckSum, Subsystem, DllCharacteristics, SizeOfStackReserve, SizeOfStackCommit, SizeOfHeapReserve, SizeOfHeapCommit, LoaderFlags, NumberOfRvaAndSizes
+
+\subsection{Feature Extraction Algorithm}
+
+The feature extraction process is implemented using Python with the \texttt{pefile} library. Algorithm~\ref{alg:extraction} presents the pseudocode for the extraction process.
+
+\begin{algorithm}[H]
+\caption{PE Header Feature Extraction}
+\label{alg:extraction}
+\begin{algorithmic}[1]
+\Require Directory path containing PE files
+\Ensure CSV file with extracted features
+\For{each file in directory}
+    \State Parse PE file using pefile library
+    \If{PE parsing successful}
+        \State Extract FILE\_HEADER features
+        \State Extract OPTIONAL\_HEADER features
+        \State Append features to dataset
+    \Else
+        \State Log error and skip file
+    \EndIf
+\EndFor
+\State Save dataset to CSV file
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Machine Learning Classification}
+
+Six machine learning classifiers were employed for malware detection:
+
+\begin{enumerate}
+    \item \textbf{Random Forest Classifier:} Ensemble method using 100 decision trees with bootstrap aggregation
+    \item \textbf{K-Nearest Neighbors (KNN):} Instance-based learning using Euclidean distance (k=5)
+    \item \textbf{Decision Tree Classifier:} Tree-based classification using information gain
+    \item \textbf{Support Vector Machine (SVM):} Kernel-based classification with RBF kernel
+    \item \textbf{Logistic Regression:} Linear classification with maximum likelihood estimation
+    \item \textbf{Gradient Boosting Classifier:} Sequential ensemble method with 50 estimators
+\end{enumerate}
+
+\subsection{Experimental Setup}
+
+\begin{itemize}
+    \item \textbf{Train/Test Split:} 80\% training (920 samples), 20\% testing (230 samples)
+    \item \textbf{Cross-Validation:} 3-fold cross-validation for model validation (consistent across both feature sets)
+    \item \textbf{Random State:} 42 (for reproducibility)
+    \item \textbf{Evaluation Metrics:} Accuracy, Precision, Recall, F1-Score
+\end{itemize}
+
+%--------------------------------------------------------------------
+\section{Results}
+%--------------------------------------------------------------------
+
+\subsection{Feature Extraction Performance}
+
+Table~\ref{tab:extraction} presents the feature extraction performance comparison between the two approaches.
+
+\begin{table}[H]
+\centering
+\caption{Feature Extraction Performance Comparison}
+\label{tab:extraction}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Metric} & \textbf{Reduced (15)} & \textbf{Extended (32)} \\
+\midrule
+Extraction Time & 215.81 sec & 290.12 sec \\
+Processing Speed & 5.33 files/sec & 3.96 files/sec \\
+Files Processed & 1,150 & 1,150 \\
+Errors & 0 & 0 \\
+CSV Columns & 16 & 34 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Comparison with Prior Work (APT1 Dataset):}
+\begin{itemize}
+    \item APT1 PE Header Extraction: 1,157.81 seconds ($\sim$19 minutes)
+    \item Our Extended Feature Set: 290.12 seconds ($\sim$4.8 minutes)
+    \item \textbf{Improvement: 75\% reduction in extraction time}
+\end{itemize}
+
+\subsection{Classification Results - Reduced Feature Set}
+
+Table~\ref{tab:reduced} presents the classification results for the reduced feature set (15 features).
+
+\begin{table}[H]
+\centering
+\caption{Classification Results - Reduced Feature Set (15 Features)}
+\label{tab:reduced}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Classifier} & \textbf{Accuracy} & \textbf{F1} & \textbf{Precision} & \textbf{Recall} \\
+\midrule
+\textbf{Random Forest} & \textbf{93.91\%} & 0.8379 & 0.8858 & 0.8264 \\
+Decision Tree & 91.74\% & 0.7329 & 0.7681 & 0.7302 \\
+Gradient Boosting & 90.87\% & 0.5956 & 0.6037 & 0.6028 \\
+KNN & 75.22\% & 0.4636 & 0.4969 & 0.4590 \\
+Logistic Regression & 51.30\% & 0.1369 & 0.1309 & 0.1734 \\
+SVM & 25.65\% & 0.0240 & 0.0151 & 0.0588 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Classification Results - Extended Feature Set}
+
+Table~\ref{tab:extended} presents the classification results for the extended feature set (32 features).
+
+\begin{table}[H]
+\centering
+\caption{Classification Results - Extended Feature Set (32 Features)}
+\label{tab:extended}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Classifier} & \textbf{Accuracy} & \textbf{F1} & \textbf{Precision} & \textbf{Recall} \\
+\midrule
+\textbf{Random Forest} & \textbf{94.78\%} & 0.8632 & 0.9051 & 0.8399 \\
+Decision Tree & 93.48\% & 0.7993 & 0.8167 & 0.7927 \\
+Gradient Boosting & 93.04\% & 0.7209 & 0.7616 & 0.7133 \\
+KNN & 80.00\% & 0.5085 & 0.5300 & 0.5053 \\
+Logistic Regression & 41.30\% & 0.1098 & 0.1076 & 0.1368 \\
+SVM & 25.65\% & 0.0240 & 0.0151 & 0.0588 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Comparative Analysis}
+
+Table~\ref{tab:comparison} presents the accuracy improvement achieved by the extended feature set.
+
+\begin{table}[H]
+\centering
+\caption{Accuracy Comparison Between Feature Sets}
+\label{tab:comparison}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Classifier} & \textbf{Reduced} & \textbf{Extended} & \textbf{Improvement} \\
+\midrule
+Random Forest & 93.91\% & 94.78\% & +0.87\% \\
+Decision Tree & 91.74\% & 93.48\% & +1.74\% \\
+Gradient Boosting & 90.87\% & 93.04\% & +2.17\% \\
+KNN & 75.22\% & 80.00\% & +4.78\% \\
+Logistic Regression & 51.30\% & 41.30\% & $-$10.00\% \\
+SVM & 25.65\% & 25.65\% & 0.00\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Feature Importance Analysis}
+
+Table~\ref{tab:importance} presents the top 10 most important features for malware classification using Random Forest on the extended feature set.
+
+\begin{table}[H]
+\centering
+\caption{Top 10 Feature Importance (Random Forest)}
+\label{tab:importance}
+\begin{tabular}{clc}
+\toprule
+\textbf{Rank} & \textbf{Feature} & \textbf{Importance} \\
+\midrule
+1 & AddressOfEntryPoint & 0.095 \\
+2 & MajorLinkerVersion & 0.092 \\
+3 & TimeDateStamp & 0.084 \\
+4 & SizeOfCode & 0.068 \\
+5 & DllCharacteristics & 0.065 \\
+6 & ImageBase & 0.057 \\
+7 & SizeOfInitializedData & 0.057 \\
+8 & SizeOfOptionalHeader & 0.050 \\
+9 & Machine & 0.050 \\
+10 & NumberOfSections & 0.039 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Performance Visualization - Reduced Feature Set}
+
+Figure~\ref{fig:reduced_comparison} shows the classifier performance comparison for the reduced feature set.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.48\textwidth]{classifier_comparison.png}
+\caption{Classifier Performance Comparison - Reduced Feature Set (15 Features)}
+\label{fig:reduced_comparison}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.48\textwidth]{accuracy_comparison.png}
+\caption{Accuracy Comparison - Reduced Feature Set (15 Features)}
+\label{fig:reduced_accuracy}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.48\textwidth]{feature_importance.png}
+\caption{Feature Importance - Reduced Feature Set (15 Features)}
+\label{fig:reduced_importance}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.48\textwidth]{confusion_matrices.png}
+\caption{Confusion Matrices - Reduced Feature Set (15 Features)}
+\label{fig:reduced_confusion}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.48\textwidth]{metrics_radar.png}
+\caption{Performance Radar Chart - Reduced Feature Set (15 Features)}
+\label{fig:reduced_radar}
+\end{figure}
+
+\subsection{Performance Visualization - Extended Feature Set}
+
+Figure~\ref{fig:extended_comparison} shows the classifier performance comparison for the extended feature set.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.48\textwidth]{classifier_comparison_more_features.png}
+\caption{Classifier Performance Comparison - Extended Feature Set (32 Features)}
+\label{fig:extended_comparison}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.48\textwidth]{accuracy_comparison_more_features.png}
+\caption{Accuracy Comparison - Extended Feature Set (32 Features)}
+\label{fig:extended_accuracy}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.48\textwidth]{feature_importance_more_features.png}
+\caption{Feature Importance - Extended Feature Set (32 Features)}
+\label{fig:extended_importance}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.48\textwidth]{confusion_matrices_more_features.png}
+\caption{Confusion Matrices - Extended Feature Set (32 Features)}
+\label{fig:extended_confusion}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.48\textwidth]{metrics_radar_more_features.png}
+\caption{Performance Radar Chart - Extended Feature Set (32 Features)}
+\label{fig:extended_radar}
+\end{figure}
+
+%--------------------------------------------------------------------
+\section{Conclusion}
+%--------------------------------------------------------------------
+
+This research presents a comprehensive comparative study of PE header-based feature extraction for static malware analysis. Our key findings demonstrate:
+
+\subsection{Feature Extraction Efficiency}
+
+The proposed methodology achieves significant improvements in feature extraction time compared to prior work. Processing 1,150 malware samples requires only 215--290 seconds (depending on feature set size), representing a 75\% reduction compared to the 19-minute extraction time reported for the APT1 dataset. This improvement enables more practical deployment in real-time malware detection scenarios.
+
+\subsection{Classification Performance}
+
+The extended feature set (32 features) outperforms the reduced feature set (15 features) for tree-based and instance-based classifiers:
+\begin{itemize}
+    \item \textbf{Random Forest} achieved the highest accuracy at \textbf{94.78\%} with the extended feature set
+    \item Tree-based methods (Random Forest, Decision Tree, Gradient Boosting) and KNN improved accuracy by 0.87\% to 4.78\% with the extended feature set
+    \item Logistic Regression performed worse with the extended set (41.30\% vs. 51.30\%), likely due to multicollinearity among the additional features
+    \item SVM and Logistic Regression exhibited poor performance overall, likely due to the multi-class nature of the problem and the lack of feature scaling
+\end{itemize}
+
+\subsection{Trade-off Analysis}
+
+While the extended feature set provides improved accuracy, it requires approximately 34\% more extraction time (290 seconds vs. 215 seconds). For applications prioritizing speed over marginal accuracy improvements, the reduced feature set offers an effective compromise.
+
+\subsection{Practical Implications}
+
+The research demonstrates that efficient malware detection is achievable using only PE header features without requiring computationally expensive dynamic analysis. The methodology is suitable for real-time malware scanning applications, large-scale malware dataset analysis, integration with existing antivirus systems, and automated malware triage systems.
+
+%--------------------------------------------------------------------
+\section{Limitations}
+%--------------------------------------------------------------------
+
+\subsection{Dataset Constraints}
+\begin{itemize}
+    \item The dataset comprises 1,150 samples, which may not fully represent the diversity of real-world malware
+    \item Samples were collected from a single source (MalwareBazaar), potentially introducing selection bias
+    \item The dataset lacks benign samples for binary classification evaluation
+\end{itemize}
+
+\subsection{Methodological Limitations}
+\begin{itemize}
+    \item Static analysis cannot detect malware that employs runtime obfuscation or packing techniques
+    \item PE header features alone may not capture behavioral characteristics of sophisticated malware
+    \item The methodology is specific to Windows PE executables and does not apply to other platforms
+\end{itemize}
+
+\subsection{Classifier Limitations}
+\begin{itemize}
+    \item SVM and Logistic Regression exhibited poor performance, possibly due to the multi-class nature of the classification problem
+    \item Hyperparameter tuning was limited; extensive optimization may yield improved results
+    \item Cross-validation was performed with only 3 folds due to computational constraints
+\end{itemize}
+
+%--------------------------------------------------------------------
+\section{Future Work}
+%--------------------------------------------------------------------
+
+\subsection{Dataset Enhancement}
+Expand the dataset to include a larger and more diverse sample set (10,000+ samples), incorporate benign samples for binary classification experiments, and include samples from multiple malware families for family classification tasks.
+
+\subsection{Feature Engineering}
+Explore the combination of dense (file header, optional header) and sparse (section, import table) features. Implement feature selection techniques (PCA, t-SNE) to identify optimal feature subsets. Investigate the correlation between different PE header fields.
+
+\subsection{Algorithmic Improvements}
+Implement parallel feature extraction using multi-core processors or distributed computing. Optimize the pefile parsing module for improved extraction speed. Explore deep learning approaches (CNN, LSTM) for automatic feature learning \cite{kumar2021mcft}.
+
+\subsection{Ensemble Methods}
+Develop ensemble models combining multiple classifiers for improved robustness. Implement stacking and boosting techniques with PE header features. Explore hybrid approaches combining static and dynamic features.
+
+\subsection{Real-world Deployment}
+Develop a production-ready malware detection system based on the proposed methodology. Evaluate performance on streaming malware samples in real-time scenarios. Integrate with existing security infrastructure and antivirus solutions.
+
+%--------------------------------------------------------------------
+% References
+%--------------------------------------------------------------------
+\begin{thebibliography}{10}
+
+\bibitem{kalakuntla2019cyber}
+R. Kalakuntla, A. B. Vanamala, and R. R. Kolipyaka, ``Cyber security,'' \textit{HOLISTICA-Journal of Business and Public Administration}, vol. 10, no. 2, pp. 115--128, 2019.
+
+\bibitem{black2016anti}
+P. Black and J. Opacki, ``Anti-analysis trends in banking malware,'' in \textit{2016 11th International Conference on Malicious and Unwanted Software (MALWARE)}, pp. 1--7, IEEE, 2016.
+
+\bibitem{balram2019static}
+N. Balram, G. Hsieh, and C. McFall, ``Static malware analysis using machine learning algorithms on APT1 dataset with string and PE header features,'' in \textit{2019 International Conference on Computational Science and Computational Intelligence (CSCI)}, pp. 90--95, IEEE, 2019.
+
+\bibitem{rezaei2020efficient}
+T. Rezaei and A. Hamze, ``An efficient approach for malware detection using PE header specifications,'' in \textit{2020 6th International Conference on Web Research (ICWR)}, pp. 234--239, IEEE, 2020.
+
+\bibitem{santos2021generating}
+R. S. Santos and E. D. Festijo, ``Generating features of windows portable executable files for static analysis using portable executable reader module (pefile),'' in \textit{2021 4th International Conference of Computer and Informatics Engineering (IC2IE)}, pp. 283--288, IEEE, 2021.
+
+\bibitem{maleki2019improved}
+N. Maleki and H. Rastegari, ``An improved method for packed malware detection using PE header and section table information,'' \textit{International Journal of Computer Network \& Information Security}, vol. 11, no. 9, 2019.
+
+\bibitem{alkhshali2020effect}
+H. H. Al-Khshali, M. Ilyas, and O. N. Ucan, ``Effect of PE file header features on accuracy,'' in \textit{2020 IEEE Symposium Series on Computational Intelligence (SSCI)}, pp. 1115--1120, IEEE, 2020.
+
+\bibitem{kumar2021mcft}
+S. Kumar \textit{et al.}, ``MCFT-CNN: Malware classification with fine-tune convolution neural networks using traditional and transfer learning in internet of things,'' \textit{Future Generation Computer Systems}, vol. 125, pp. 334--351, 2021.
+
+\bibitem{yuk2022static}
+C. K. Yuk and C. J. Seo, ``Static analysis and machine learning-based malware detection system using PE header feature values,'' \textit{International Journal of Innovative Research and Scientific Studies}, vol. 5, no. 4, pp. 281--288, 2022.
+
+\bibitem{choo2022handbook}
+K. K. R. Choo and A. Dehghantanha, \textit{Handbook of Big Data Analytics and Forensics}. Springer, 2022.
+
+\end{thebibliography}
+
+\end{document}

@@ -16,7 +16,6 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import (
     accuracy_score, f1_score, precision_score, recall_score,
     confusion_matrix
@@ -118,7 +117,7 @@ def train_classifiers(X_train, X_test, y_train, y_test):
         'precision': precision_score(y_test, y_pred_rfc, average='macro', zero_division=0),
         'recall': recall_score(y_test, y_pred_rfc, average='macro', zero_division=0),
         'y_pred': y_pred_rfc,
-        'cv_scores': cross_val_score(rfc, X_train, y_train, cv=5)
+        'cv_scores': cross_val_score(rfc, X_train, y_train, cv=3)
     }
     print(f"  Accuracy: {results['Random Forest']['accuracy']:.4f}")
 
@@ -135,7 +134,7 @@ def train_classifiers(X_train, X_test, y_train, y_test):
         'precision': precision_score(y_test, y_pred_knn, average='macro', zero_division=0),
         'recall': recall_score(y_test, y_pred_knn, average='macro', zero_division=0),
         'y_pred': y_pred_knn,
-        'cv_scores': cross_val_score(knn, X_train, y_train, cv=5)
+        'cv_scores': cross_val_score(knn, X_train, y_train, cv=3)
     }
     print(f"  Accuracy: {results['KNN']['accuracy']:.4f}")
 
@@ -152,7 +151,7 @@ def train_classifiers(X_train, X_test, y_train, y_test):
         'precision': precision_score(y_test, y_pred_dtc, average='macro', zero_division=0),
         'recall': recall_score(y_test, y_pred_dtc, average='macro', zero_division=0),
         'y_pred': y_pred_dtc,
-        'cv_scores': cross_val_score(dtc, X_train, y_train, cv=5)
+        'cv_scores': cross_val_score(dtc, X_train, y_train, cv=3)
     }
     print(f"  Accuracy: {results['Decision Tree']['accuracy']:.4f}")
 
@@ -169,13 +168,13 @@ def train_classifiers(X_train, X_test, y_train, y_test):
         'precision': precision_score(y_test, y_pred_lr, average='macro', zero_division=0),
         'recall': recall_score(y_test, y_pred_lr, average='macro', zero_division=0),
         'y_pred': y_pred_lr,
-        'cv_scores': cross_val_score(lr, X_train, y_train, cv=5)
+        'cv_scores': cross_val_score(lr, X_train, y_train, cv=3)
     }
     print(f"  Accuracy: {results['Logistic Regression']['accuracy']:.4f}")
 
     # 5. SVM 
     print("\nTraining SVM...")
-    svm = SVC(kernel='rbf', gamma=0.1, C=1.0, random_state=42)
+    svm = SVC(kernel='rbf', gamma='scale', C=1.0, random_state=42)
     svm.fit(X_train, y_train)
     y_pred_svm = svm.predict(X_test)
 
@@ -186,13 +185,13 @@ def train_classifiers(X_train, X_test, y_train, y_test):
         'precision': precision_score(y_test, y_pred_svm, average='macro', zero_division=0),
         'recall': recall_score(y_test, y_pred_svm, average='macro', zero_division=0),
         'y_pred': y_pred_svm,
-        'cv_scores': cross_val_score(svm, X_train, y_train, cv=5)
+        'cv_scores': cross_val_score(svm, X_train, y_train, cv=3)
     }
     print(f"  Accuracy: {results['SVM']['accuracy']:.4f}")
 
     # 6. Gradient Boosting 
     print("\nTraining Gradient Boosting...")
-    gbc = GradientBoostingClassifier(learning_rate=0.1, n_estimators=100, random_state=42)
+    gbc = GradientBoostingClassifier(n_estimators=50, random_state=42)
     gbc.fit(X_train, y_train)
     y_pred_gbc = gbc.predict(X_test)
 
@@ -203,7 +202,7 @@ def train_classifiers(X_train, X_test, y_train, y_test):
         'precision': precision_score(y_test, y_pred_gbc, average='macro', zero_division=0),
         'recall': recall_score(y_test, y_pred_gbc, average='macro', zero_division=0),
         'y_pred': y_pred_gbc,
-        'cv_scores': cross_val_score(gbc, X_train, y_train, cv=5)
+        'cv_scores': cross_val_score(gbc, X_train, y_train, cv=3)
     }
     print(f"  Accuracy: {results['Gradient Boosting']['accuracy']:.4f}")
 
@@ -247,7 +246,7 @@ def plot_classifier_comparison(results, output_folder):
                    color=plt.cm.viridis(np.linspace(0.2, 0.8, len(names))))
     ax2.set_xlabel('Classifier', fontsize=11)
     ax2.set_ylabel('CV Accuracy', fontsize=11)
-    ax2.set_title('5-Fold Cross-Validation Scores', fontsize=12, fontweight='bold')
+    ax2.set_title('3-Fold Cross-Validation Scores', fontsize=12, fontweight='bold')
     ax2.set_xticklabels(names, rotation=45, ha='right')
     ax2.set_ylim(0, 1.1)
     ax2.grid(axis='y', alpha=0.3)
@@ -489,12 +488,8 @@ def main():
     # Handle any NaN values
     X = X.fillna(0)
 
-    # Scale features for better performance
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-
     X_train, X_test, y_train, y_test = train_test_split(
-        X_scaled, y, test_size=0.2, random_state=42
+        X, y, test_size=0.2, random_state=42
     )
 
     print(f"Training samples: {len(X_train)}")

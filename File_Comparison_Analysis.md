@@ -27,11 +27,11 @@
 
 | Setting | `thesis_with_charts.py` | `generate_charts.py` | `make_charts.py` | `generate_charts_more_features.py` |
 |---------|-------------------------|----------------------|------------------|-----------------------------------|
-| **Feature Scaling** | `StandardScaler` | None | None | None |
-| **SVM Kernel** | RBF (gamma=0.1) | **Linear** | RBF (gamma='scale') | RBF (gamma='scale') |
-| **SVM Cross-Val** | 5-fold | 5-fold | **Skipped** | **Skipped** |
-| **Cross-Validation** | 5-fold | 5-fold | **3-fold** | **3-fold** |
-| **Gradient Boosting** | 100 est. | 100 est. | **50 est.** | **50 est.** |
+| **Feature Scaling** | None | None | None | None |
+| **SVM Kernel** | RBF (gamma='scale') | RBF (gamma='scale') | RBF (gamma='scale') | RBF (gamma='scale') |
+| **SVM Cross-Val** | 3-fold | 3-fold | **Skipped** | **Skipped** |
+| **Cross-Validation** | 3-fold | 3-fold | 3-fold | 3-fold |
+| **Gradient Boosting** | 50 est. | 50 est. | 50 est. | 50 est. |
 | **Random Forest n_jobs** | Default | Default | **-1 (parallel)** | **-1 (parallel)** |
 | **Matplotlib Backend** | Default | Default | **Agg** | **Agg** |
 | **Lines of Code** | ~534 | ~523 | ~213 | ~367 |
@@ -112,9 +112,9 @@
 │      .py            │        .py          │            .py                  │
 ├─────────────────────┼─────────────────────┼─────────────────────────────────┤
 │ • Full pipeline     │ • Full pipeline     │ • ML + Charts ONLY              │
-│ • StandardScaler    │ • No scaling        │ • No scaling                    │
-│ • SVM: RBF          │ • SVM: Linear       │ • SVM: RBF                      │
-│ • 5-fold CV         │ • 5-fold CV         │ • 3-fold CV (faster)            │
+│ • No scaling        │ • No scaling        │ • No scaling                    │
+│ • SVM: RBF          │ • SVM: RBF          │ • SVM: RBF                      │
+│ • 3-fold CV         │ • 3-fold CV         │ • 3-fold CV                     │
 │ • Modular code      │ • Linear script     │ • Compact script                │
 └─────────────────────┴─────────────────────┴─────────────────────────────────┘
 
@@ -157,21 +157,21 @@
 |------------|----------|----------|-----------|--------|
 | **Random Forest** | **93.91%** | 0.8379 | 0.8858 | 0.8264 |
 | Decision Tree | 91.74% | 0.7329 | 0.7681 | 0.7302 |
-| Gradient Boosting | 90.87% | 0.7209 | 0.7680 | 0.7302 |
+| Gradient Boosting | 90.87% | 0.5956 | 0.6037 | 0.6028 |
 | KNN | 75.22% | 0.4636 | 0.4969 | 0.4590 |
-| Logistic Regression | 41.30% | 0.1098 | 0.1500 | 0.1200 |
-| SVM | 25.65% | 0.0240 | 0.0300 | 0.0250 |
+| Logistic Regression | 51.30% | 0.1369 | 0.1309 | 0.1734 |
+| SVM | 25.65% | 0.0240 | 0.0151 | 0.0588 |
 
 ### More Features (32 features)
 
 | Classifier | Accuracy | F1 Score | Precision | Recall |
 |------------|----------|----------|-----------|--------|
-| **Random Forest** | **94.78%** | 0.8632 | 0.8900 | 0.8500 |
-| Decision Tree | 93.48% | 0.7993 | 0.8200 | 0.7900 |
-| Gradient Boosting | 93.04% | 0.7209 | 0.7500 | 0.7100 |
-| KNN | 80.00% | 0.5085 | 0.5300 | 0.5000 |
-| Logistic Regression | 41.30% | 0.1098 | 0.1500 | 0.1200 |
-| SVM | 25.65% | 0.0240 | 0.0300 | 0.0250 |
+| **Random Forest** | **94.78%** | 0.8632 | 0.9051 | 0.8399 |
+| Decision Tree | 93.48% | 0.7993 | 0.8167 | 0.7927 |
+| Gradient Boosting | 93.04% | 0.7209 | 0.7616 | 0.7133 |
+| KNN | 80.00% | 0.5085 | 0.5300 | 0.5053 |
+| Logistic Regression | 41.30% | 0.1098 | 0.1076 | 0.1368 |
+| SVM | 25.65% | 0.0240 | 0.0151 | 0.0588 |
 
 ### Accuracy Improvement (More Features vs Less Features)
 
@@ -181,6 +181,8 @@
 | Decision Tree | 91.74% | 93.48% | **+1.74%** |
 | Gradient Boosting | 90.87% | 93.04% | **+2.17%** |
 | KNN | 75.22% | 80.00% | **+4.78%** |
+| Logistic Regression | 51.30% | 41.30% | **-10.00%** |
+| SVM | 25.65% | 25.65% | **0.00%** |
 
 ---
 

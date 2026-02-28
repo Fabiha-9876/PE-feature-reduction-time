@@ -135,7 +135,7 @@ results['Random Forest'] = {
     'precision': precision_rfc,
     'recall': recall_rfc,
     'y_pred': y_pred_rfc,
-    'cv_scores': cross_val_score(rfc, X_train, y_train, cv=5)
+    'cv_scores': cross_val_score(rfc, X_train, y_train, cv=3)
 }
 
 # Train and test a K Nearest Neighbor Classifier
@@ -160,7 +160,7 @@ results['KNN'] = {
     'precision': precision_knn,
     'recall': recall_knn,
     'y_pred': y_pred_knn,
-    'cv_scores': cross_val_score(knn, X_train, y_train, cv=5)
+    'cv_scores': cross_val_score(knn, X_train, y_train, cv=3)
 }
 
 # Train and test a Decision Tree Classifier
@@ -185,12 +185,12 @@ results['Decision Tree'] = {
     'precision': precision_dtc,
     'recall': recall_dtc,
     'y_pred': y_pred_dtc,
-    'cv_scores': cross_val_score(dtc, X_train, y_train, cv=5)
+    'cv_scores': cross_val_score(dtc, X_train, y_train, cv=3)
 }
 
 # Train and test a Support Vector Machine Classifier
 print("\nTraining Support Vector Machine Classifier...")
-svm = SVC(kernel="linear")
+svm = SVC(kernel='rbf', gamma='scale', C=1.0, random_state=42)
 svm.fit(X_train, y_train)
 y_pred_svm = svm.predict(X_test)
 accuracy_svm = accuracy_score(y_test, y_pred_svm)
@@ -210,7 +210,7 @@ results['SVM'] = {
     'precision': precision_svm,
     'recall': recall_svm,
     'y_pred': y_pred_svm,
-    'cv_scores': cross_val_score(svm, X_train, y_train, cv=5)
+    'cv_scores': cross_val_score(svm, X_train, y_train, cv=3)
 }
 
 # Train and test a Logistic Regression Classifier
@@ -235,12 +235,12 @@ results['Logistic Regression'] = {
     'precision': precision_lr,
     'recall': recall_lr,
     'y_pred': y_pred_lr,
-    'cv_scores': cross_val_score(lr, X_train, y_train, cv=5)
+    'cv_scores': cross_val_score(lr, X_train, y_train, cv=3)
 }
 
 # Train and test a Gradient Boosting Classifier
 print("\nTraining Gradient Boosting Classifier...")
-gbc = GradientBoostingClassifier(random_state=42)
+gbc = GradientBoostingClassifier(n_estimators=50, random_state=42)
 gbc.fit(X_train, y_train)
 y_pred_gbc = gbc.predict(X_test)
 accuracy_gbc = accuracy_score(y_test, y_pred_gbc)
@@ -260,7 +260,7 @@ results['Gradient Boosting'] = {
     'precision': precision_gbc,
     'recall': recall_gbc,
     'y_pred': y_pred_gbc,
-    'cv_scores': cross_val_score(gbc, X_train, y_train, cv=5)
+    'cv_scores': cross_val_score(gbc, X_train, y_train, cv=3)
 }
 
 # ============================================================================
@@ -306,7 +306,7 @@ def plot_classifier_comparison(results, output_folder):
                    color=plt.cm.viridis(np.linspace(0.2, 0.8, len(names))))
     ax2.set_xlabel('Classifier', fontsize=11)
     ax2.set_ylabel('CV Accuracy', fontsize=11)
-    ax2.set_title('5-Fold Cross-Validation Scores', fontsize=12, fontweight='bold')
+    ax2.set_title('3-Fold Cross-Validation Scores', fontsize=12, fontweight='bold')
     ax2.set_xticklabels(names, rotation=45, ha='right')
     ax2.set_ylim(0, 1.1)
     ax2.grid(axis='y', alpha=0.3)
