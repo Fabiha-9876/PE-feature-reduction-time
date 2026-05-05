@@ -46,7 +46,7 @@
 
 % Abstract
 \begin{abstract}
-Malware detection remains a critical challenge in cybersecurity as the volume and sophistication of malicious software continue to increase exponentially. Notably, prior studies on the APT1 dataset reported feature extraction times exceeding 19 minutes (1,157.81 seconds) for processing executable samples, making real-time detection impractical. This research presents an efficient feature extraction methodology for static malware analysis utilizing Portable Executable (PE) header files. We conduct a comprehensive comparative study between two distinct feature set approaches: a reduced feature set (14 features) and an extended feature set (32 features) extracted from PE file headers. Our experiments, conducted on a newly created and publicly available dataset of 1,150 malware executable samples collected from MalwareBazaar, demonstrate that the extended feature set achieves superior classification accuracy (94.78\%) compared to the reduced feature set (93.91\%) using Random Forest classification, with Decision Tree also achieving 93.48\% accuracy on the extended set. Our proposed methodology reduces feature extraction time from approximately 19 minutes to approximately 215--290 seconds, representing a reduction of over 75\%. The research evaluates six machine learning classifiers including Random Forest, K-Nearest Neighbors, Decision Tree, Support Vector Machine, Logistic Regression, and Gradient Boosting, providing insights into the trade-offs between feature dimensionality, extraction time, and classification performance. Additionally, we create and publish a novel malware dataset with pre-extracted PE header features for research purposes. Our findings contribute to the development of more efficient real-time malware detection systems by reducing feature extraction time.
+Static PE-header analysis is an attractive front-end for malware-triage pipelines: it parses without execution and exposes structural metadata cheaply. Prior PE-header studies on the APT1 dataset reported feature-extraction times above 19 minutes (1{,}157.81~s) per corpus, but those numbers conflate hardware, dataset, and pipeline composition with header parsing itself, leaving the cost of a header-only pipeline poorly characterized on modern hardware. This paper presents a measurement study of that gap on a newly created 1{,}150-sample MalwareBazaar corpus. We compare two PE-header feature sets, a reduced 14-attribute set and an extended 32-attribute set, evaluated against the PE \texttt{Characteristics} bitfield (a structural label that encodes properties such as executable type, 32/64-bit, and DLL flags) across six classifiers: Random Forest, Decision Tree, Gradient Boosting, K-Nearest Neighbors, Logistic Regression, and Support Vector Machine. Random Forest predicts the structural target at 94.78\% accuracy on the extended set and 93.91\% on the reduced set; Decision Tree reaches 93.48\%. Our header-only pipeline runs in 215--290~s on commodity hardware (4--5 files/sec); we report this measurement directly rather than as a head-to-head speedup against APT1 because the pipeline composition, hardware, and dataset all differ from prior reports. We release the corpus with pre-extracted features to support reproduction and downstream binary malware-vs-benign work.
 \end{abstract}
 
 % Keywords
@@ -62,7 +62,7 @@ The proliferation of malware poses a critical threat to computer systems worldwi
 
 Prior PE-header studies on the APT1 dataset \cite{balram2019static} reported feature extraction times exceeding 19 minutes (1{,}157.81~s) per corpus, impractical for detection systems that process thousands of samples daily, especially given that ransomware attacks occurred every $\sim$11 seconds in 2021. Comprehensive feature sets capture richer signal at the cost of higher extraction time; minimal sets sacrifice discriminative power for speed. Prior work has not systematically compared feature-set sizes against extraction time on a single modern dataset.
 
-\textbf{Contributions.} This paper develops an efficient PE-header feature extraction methodology and reports a measurement study of the feature-set-size trade-off. We compare a reduced 14-attribute set (PE-header fields most commonly used in prior work) against an extended 32-attribute set (all accessible FILE\_HEADER and OPTIONAL\_HEADER fields), evaluate six classifiers (Random Forest, Decision Tree, Gradient Boosting, K-Nearest Neighbors, Logistic Regression, Support Vector Machine), and report extraction throughput on a newly created 1{,}150-sample MalwareBazaar corpus released with the paper. Our pipeline reduces extraction time from $\sim$19 minutes (prior APT1 reports) to 215--290 seconds, a $>$75\% reduction; the extended set reaches 94.78\% accuracy with Random Forest while the reduced set reaches 93.91\%, and KNN improves by 4.78~pp moving from reduced to extended.
+\textbf{Contributions.} This paper presents a measurement study of the feature-set-size trade-off for header-only PE pipelines. We (i) compare a reduced 14-attribute set against an extended 32-attribute set across six classifiers (Random Forest, Decision Tree, Gradient Boosting, K-Nearest Neighbors, Logistic Regression, Support Vector Machine), (ii) report header-only extraction throughput on commodity hardware (215--290~s on 1{,}150 samples; 4--5 files/sec), and (iii) release the corpus with pre-extracted features for reproduction. The classification target is the PE \texttt{Characteristics} bitfield, a structural label encoding executable type, 32/64-bit, and DLL flags; we are explicit that this is a structural-property prediction task, not a malware-vs-benign or malware-family task (we discuss this scope in Section~\ref{sec:limit}). The extended set reaches 94.78\% accuracy with Random Forest while the reduced set reaches 93.91\%; KNN improves by 4.78~pp moving from reduced to extended. We do not claim a controlled head-to-head speedup against the 19-minute APT1 figure because the pipeline composition, hardware, and dataset all differ.
 
 %--------------------------------------------------------------------
 \section{Working Mechanism}
@@ -70,7 +70,7 @@ Prior PE-header studies on the APT1 dataset \cite{balram2019static} reported fea
 
 \subsection{System Architecture}
 
-The proposed malware detection system comprises three primary phases: (1) Feature Extraction from PE files using the pefile library, (2) Machine Learning Classification using trained models, and (3) Detection Result output. Figure~\ref{fig:workflow} illustrates this workflow.
+The proposed pipeline comprises three primary phases: (1) Feature Extraction from PE files using the \texttt{pefile} library, (2) Classifier inference predicting the structural \texttt{Characteristics} bitfield, and (3) Output. Figure~\ref{fig:workflow} illustrates this workflow.
 
 \begin{figure}[!htbp]
 \centering
@@ -130,7 +130,7 @@ The feature extraction process is implemented using Python with the \texttt{pefi
 
 \subsection{Machine Learning Classification}
 
-Six machine learning classifiers were employed for malware detection. Random Forest is an ensemble method using 100 decision trees with bootstrap aggregation. K-Nearest Neighbors (KNN) is an instance-based learning approach using Euclidean distance with $k=5$. Decision Tree performs tree-based classification using information gain. Support Vector Machine (SVM) uses kernel-based classification with an RBF kernel. Logistic Regression performs linear classification with maximum likelihood estimation. Gradient Boosting is a sequential ensemble method with 50 estimators.
+Six classifiers were employed for the structural-Characteristics prediction task. Random Forest is an ensemble method using 100 decision trees with bootstrap aggregation. K-Nearest Neighbors (KNN) is instance-based with Euclidean distance and $k=5$. Decision Tree uses information gain. Support Vector Machine (SVM) uses an RBF kernel. Logistic Regression performs linear classification with maximum likelihood estimation. Gradient Boosting is a sequential ensemble with 50 estimators. SVM and Logistic Regression were applied without feature scaling and with default hyperparameters in this study; their performance is consequently a lower bound rather than a tuned baseline.
 
 \subsection{Experimental Setup}
 
@@ -305,14 +305,6 @@ Tree-based methods (RF 93.91\%, DT 91.74\%, GB 90.87\%) cluster at the top; KNN 
 
 Random Forest and Decision Tree show strong diagonal dominance; SVM and Logistic Regression exhibit scattered predictions, confirming their inability to distinguish classes with this feature set.
 
-\begin{figure}[!htbp]
-\centering
-\includegraphics[width=\columnwidth]{metrics_radar.png}
-\caption{Performance Radar Chart - Reduced Feature Set (14 Features)}
-\label{fig:reduced_radar}
-\end{figure}
-
-Random Forest covers the largest area, indicating balanced superiority; SVM and LR shapes collapse near the center.
 
 \subsection{Performance Visualization - Extended Feature Set}
 
@@ -354,24 +346,32 @@ The importance distribution is more gradual than in the reduced set, with \textt
 
 Diagonal entries are more prominent than in Figure~\ref{fig:reduced_confusion} for RF, DT, GB, and KNN; SVM and LR remain largely unchanged.
 
-\begin{figure}[!htbp]
-\centering
-\includegraphics[width=\columnwidth]{metrics_radar_more_features.png}
-\caption{Performance Radar Chart - Extended Feature Set (32 Features)}
-\label{fig:extended_radar}
-\end{figure}
+%--------------------------------------------------------------------
+\section{Limitations and Threats to Validity}
+\label{sec:limit}
+%--------------------------------------------------------------------
 
-RF's coverage area is the largest and most symmetric; KNN's shape expands relative to Figure~\ref{fig:reduced_radar}, while SVM and LR remain near the center.
+We surface the constraints of this study explicitly so readers can interpret the numbers in context.
+
+\textbf{Classification target is structural, not semantic.} The target is the PE \texttt{Characteristics} bitfield (executable type, 32/64-bit, DLL flags, etc.), which describes binary structure rather than malware family or maliciousness. Reaching 94.78\% on this target means the model can recover structural metadata from PE-header fields, not that it can distinguish malware from benign software or one family from another.
+
+\textbf{No benign samples; no binary task.} The corpus contains only malware (1{,}150 MalwareBazaar samples). We cannot evaluate binary malware-vs-benign detection or report false-positive rates against benign software. Doing so requires a benign corpus paired by curation pipeline, which we leave to follow-up work.
+
+\textbf{Cross-study extraction-time comparison is confounded.} Our 215--290~s figure on MalwareBazaar is not directly comparable to the 19-minute APT1 number of Balram et al.\ \cite{balram2019static}: the two pipelines extract structurally different feature sets (APT1 includes section names, imported symbols, string statistics, and per-file entropy in addition to header fields), and the hardware and library versions also differ. We therefore report our extraction throughput as a measurement on this corpus rather than as a head-to-head speedup against APT1.
+
+\textbf{Heavy class imbalance.} The 30 \texttt{Characteristics} values are heavily skewed: 11 of 30 classes contain $\le 2$ samples, and the top three classes account for $\sim$60\% of the corpus. Macro-F1 on rare classes is therefore unreliable; the high overall accuracies are partly driven by majority-class prediction.
+
+\textbf{Hyperparameter and CV budget.} SVM and Logistic Regression were applied without feature scaling and with default hyperparameters; their reported numbers are a lower bound, not a tuned baseline. Cross-validation used 3 folds rather than 5 or 10. Wider grid search and standardised preprocessing would likely raise SVM/LR substantially.
+
+\textbf{Adversarial fragility.} Modern packers, obfuscators, and metadata rewriters can manipulate \texttt{Characteristics}, randomize \texttt{TimeDateStamp}, alter section/file alignment, and inject decoy DLL flags without affecting payload behavior. PE-header features should therefore be combined with behavioral or content-based features in deployment, not used in isolation. The methodology is also Windows PE-specific.
 
 %--------------------------------------------------------------------
 \section{Conclusion and Future Work}
 %--------------------------------------------------------------------
 
-We presented a comparative study of PE header-based feature extraction for static malware analysis. Our pipeline reduces extraction time from $\sim$19 minutes (APT1) to 215--290~s on 1{,}150 samples, a $>$75\% reduction. The extended (32) feature set outperforms the reduced (14) set for tree- and instance-based classifiers (RF 94.78\%, DT 93.48\%, KNN 80.00\%); LR degrades by 10~pp under multicollinearity, and SVM is poor without feature scaling. The reduced set offers an effective speed-accuracy compromise (RF 93.91\% at 215~s, vs.\ 290~s for extended).
+We presented a measurement study of header-only PE-feature extraction. Our pipeline runs in 215--290~s on 1{,}150 samples (4--5 files/sec); under the structural \texttt{Characteristics} prediction setting, the extended (32) feature set reaches RF 94.78\% / DT 93.48\% / KNN 80.00\% while the reduced (14) set reaches RF 93.91\% / DT 91.74\% / KNN 75.22\%. LR degrades by 10~pp under multicollinearity in the extended set. The reduced set offers an effective speed-accuracy compromise.
 
-\textbf{Limitations.} The corpus is drawn from a single source (MalwareBazaar) and may exhibit selection bias; it lacks benign samples for binary evaluation. Static header features cannot detect runtime-obfuscated or packed malware, and SVM/LR were not tuned with feature scaling or extensive grid search. The methodology is Windows PE-specific.
-
-\textbf{Future work} includes expanding to 10{,}000+ samples with benign files, applying feature selection (PCA, t-SNE), parallelizing extraction, exploring deep models (CNN, LSTM) for automatic feature learning \cite{kumar2021mcft}, and evaluation in production-ready real-time detection pipelines.
+\textbf{Future work} includes adding a benign corpus to enable binary malware-vs-benign evaluation, retuning SVM/LR with feature scaling and grid search, expanding to 10{,}000+ samples and additional malware-family labels, and a controlled head-to-head extraction-time benchmark against richer pipelines (e.g., adding section names, imports, and entropy) on a single fixed corpus. Deep models (CNN, LSTM) for automatic feature learning \cite{kumar2021mcft} are another natural direction.
 
 %--------------------------------------------------------------------
 % Acknowledgements
